@@ -1,0 +1,24 @@
+# Ignore node_modules
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Ignore build artifacts
+build/
+dist/
+client/build/
+client/dist/
+server/build/
+server/dist/
+
+# Ignore .env files
+.env
+client/.env
+server/.env
+
+# Logs and misc
+*.log
+.DS_Store
+
+# the database value file
+AM_Oprag.sql
