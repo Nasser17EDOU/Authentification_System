@@ -10,7 +10,6 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  Divider,
   ListItemIcon,
   ListItemText,
   useMediaQuery,
@@ -28,13 +27,12 @@ import {
   ExitToApp,
   ExpandMore,
   ExpandLess,
-  Home,
 } from "@mui/icons-material";
-
-interface MainMenu {
-  title: string;
-  subLinks: string[];
-}
+import logo from "../assets/logo.png";
+import {
+  getAllPossiblePermissions,
+  getMenuObjectListByPermissions,
+} from "../utilities/linksAndPermissions.utilities";
 
 interface AppBarProps {
   user?: {
@@ -54,21 +52,10 @@ const AppBar: React.FC<AppBarProps> = ({ user, onLogin, onLogout }) => {
   const [openSubMenu, setOpenSubMenu] = useState<Record<string, boolean>>({});
   const menuRefs = useRef<Record<string, HTMLElement | null>>({});
 
-  // Sample main menu data
-  const mainMenus: MainMenu[] = [
-    {
-      title: "Vehicles",
-      subLinks: ["Car", "Bike", "Train", "Plane"],
-    },
-    {
-      title: "Electronics",
-      subLinks: ["Phones", "Computers", "Hard drives"],
-    },
-    {
-      title: "Clothing",
-      subLinks: ["Men", "Women", "Kids"],
-    },
-  ];
+  // Get the user all Menu Object List by its Permissions
+  const userMenuObjectList = getMenuObjectListByPermissions(
+    getAllPossiblePermissions()
+  );
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -96,21 +83,24 @@ const AppBar: React.FC<AppBarProps> = ({ user, onLogin, onLogout }) => {
 
   const renderDesktopMenu = () => (
     <Stack direction="row" spacing={1} sx={{ flexGrow: 1, ml: 3 }}>
-      {mainMenus.map((menu) => (
-        <Box key={menu.title}>
+      {userMenuObjectList.map((menuObj, menuObjIndex) => (
+        <Box key={menuObjIndex}>
           <Button
             color="inherit"
-            endIcon={openSubMenu[menu.title] ? <ExpandLess /> : <ExpandMore />}
-            onClick={(e) => handleSubMenuToggle(menu.title, e)}
+            startIcon={menuObj.icon}
+            endIcon={
+              openSubMenu[menuObj.label] ? <ExpandLess /> : <ExpandMore />
+            }
+            onClick={(e) => handleSubMenuToggle(menuObj.label, e)}
             sx={{ position: "relative" }}
           >
-            {menu.title}
+            {menuObj.label}
           </Button>
           <Popover
-            open={!!openSubMenu[menu.title]}
-            anchorEl={menuRefs.current[menu.title]}
+            open={!!openSubMenu[menuObj.label]}
+            anchorEl={menuRefs.current[menuObj.label]}
             onClose={() =>
-              setOpenSubMenu((prev) => ({ ...prev, [menu.title]: false }))
+              setOpenSubMenu((prev) => ({ ...prev, [menuObj.label]: false }))
             }
             anchorOrigin={{
               vertical: "bottom",
@@ -129,9 +119,14 @@ const AppBar: React.FC<AppBarProps> = ({ user, onLogin, onLogout }) => {
             }}
           >
             <List>
-              {menu.subLinks.map((subLink) => (
-                <ListItemButton key={subLink} sx={{ minWidth: 120 }}>
-                  {subLink}
+              {menuObj.linkObjList.map((linkObj, linkObjIndex) => (
+                <ListItemButton
+                  key={linkObjIndex}
+                  href={linkObj.link}
+                  sx={{ minWidth: 120 }}
+                >
+                  <ListItemIcon>{linkObj.linkIcon}</ListItemIcon>
+                  <ListItemText>{linkObj.linkLabel}</ListItemText>
                 </ListItemButton>
               ))}
             </List>
@@ -164,25 +159,37 @@ const AppBar: React.FC<AppBarProps> = ({ user, onLogin, onLogout }) => {
           },
         }}
       >
-        <MenuItem>
+        {/* <MenuItem>
           <ListItemIcon>
             <Home fontSize="small" />
           </ListItemIcon>
           <ListItemText>Home</ListItemText>
         </MenuItem>
-        <Divider />
-        {mainMenus.map((menu) => (
-          <div key={menu.title}>
-            <MenuItem onClick={(e) => handleSubMenuToggle(menu.title, e)}>
-              <ListItemText primary={menu.title} />
-              {openSubMenu[menu.title] ? <ExpandLess /> : <ExpandMore />}
+        <Divider /> */}
+        {userMenuObjectList.map((menuObj, menuObjIndex) => (
+          <div key={menuObjIndex}>
+            <MenuItem onClick={(e) => handleSubMenuToggle(menuObj.label, e)}>
+              <ListItemIcon>{menuObj.icon}</ListItemIcon>
+              <ListItemText primary={menuObj.label} />
+              <ListItemIcon>
+                {openSubMenu[menuObj.label] ? <ExpandLess /> : <ExpandMore />}
+              </ListItemIcon>
             </MenuItem>
-            <Collapse in={openSubMenu[menu.title]} timeout="auto" unmountOnExit>
+            <Collapse
+              in={openSubMenu[menuObj.label]}
+              timeout="auto"
+              unmountOnExit
+            >
               <List component="div" disablePadding>
-                {menu.subLinks.map((subLink) => (
-                  <MenuItem key={subLink} sx={{ pl: 4 }}>
-                    <ListItemText primary={subLink} />
-                  </MenuItem>
+                {menuObj.linkObjList.map((linkObj, linkObjIndex) => (
+                  <ListItemButton
+                    key={linkObjIndex}
+                    href={linkObj.link}
+                    sx={{ pl: 4 }}
+                  >
+                    <ListItemIcon>{linkObj.linkIcon}</ListItemIcon>
+                    <ListItemText>{linkObj.linkLabel}</ListItemText>
+                  </ListItemButton>
                 ))}
               </List>
             </Collapse>
@@ -193,97 +200,136 @@ const AppBar: React.FC<AppBarProps> = ({ user, onLogin, onLogout }) => {
   );
 
   return (
-    <MuiAppBar position="static" elevation={3}>
+    <MuiAppBar position="fixed" elevation={3}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
+          {/* Mobile Menu Button */}
+          {isMobile && renderMobileMenu()}
+
           {/* Logo and Title */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <img
-              src="/logo.png" // Replace with your logo path
+              src={logo} // Replace with your logo path
               alt="Logo"
               style={{ height: 40, marginRight: 10 }}
             />
             <Typography
               variant="h6"
-              noWrap
               component="a"
+              noWrap
               href="/"
               sx={{
                 mr: 2,
                 fontWeight: 700,
                 color: "inherit",
                 textDecoration: "none",
+                // Responsive font size
+                fontSize: {
+                  xs: "1rem", // extra small devices
+                  sm: "1.1rem", // small devices
+                  md: "1.2rem", // medium devices
+                  lg: "1.25rem", // large devices
+                },
+                // You can also make other properties responsive
+                display: {
+                  xs: "none", // hide on extra small screens
+                  sm: "block", // show on small and larger screens
+                },
+                // Or use the breakpoints syntax
+                [theme.breakpoints.down("sm")]: {
+                  mr: 1, // reduce margin on small screens
+                },
               }}
             >
-              My App
+              {import.meta.env.VITE_APPBARR_TITLE}
             </Typography>
           </Box>
 
           {/* Main Menu - Desktop */}
           {!isMobile && renderDesktopMenu()}
 
-          {/* Mobile Menu Button */}
-          {isMobile && renderMobileMenu()}
-
           {/* User Section */}
           <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            {user ? (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              width: "100%", // Ensure parent takes full width
+              overflow: "hidden", // Prevent any overflow
+            }}
+          >
+            {user && (
               <>
-                <Typography variant="body2" sx={{ mr: 1 }}>
-                  Welcome, {user.name}
-                </Typography>
-                <IconButton
-                  size="large"
-                  edge="end"
-                  aria-label="account of current user"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
-                  onClick={handleMenuOpen}
-                  color="inherit"
-                >
-                  {user.avatar ? (
-                    <Avatar
-                      alt={user.name}
-                      src={user.avatar}
-                      sx={{ width: 32, height: 32 }}
-                    />
-                  ) : (
-                    <AccountCircle />
-                  )}
-                </IconButton>
-                <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorEl}
-                  anchorOrigin={{
-                    vertical: "top",
-                    horizontal: "right",
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    minWidth: 0, // This is crucial for text overflow in flex
+                    flex: 1, // Allow this container to shrink
                   }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: "top",
-                    horizontal: "right",
-                  }}
-                  open={Boolean(anchorEl)}
-                  onClose={handleClose}
                 >
-                  <MenuItem onClick={onLogout}>
-                    <ListItemIcon>
-                      <ExitToApp fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Logout</ListItemText>
-                  </MenuItem>
-                </Menu>
+                  <Typography
+                    variant="body2"
+                    noWrap
+                    sx={{
+                      mr: 1,
+                      textOverflow: "ellipsis",
+                      // maxWidth: 100,
+                      fontSize: {
+                        xs: "0.75rem", // extra small devices
+                        sm: "1rem", // small devices
+                        md: "0.75rem", // medium devices
+                        lg: "1rem", // large devices
+                      },
+                    }}
+                  >
+                    {user.name}
+                  </Typography>
+                  <IconButton
+                    size="large"
+                    edge="end"
+                    aria-label="account of current user"
+                    aria-controls="menu-appbar"
+                    aria-haspopup="true"
+                    onClick={handleMenuOpen}
+                    color="inherit"
+                  >
+                    {user.avatar ? (
+                      <Avatar
+                        alt={user.name}
+                        src={user.avatar}
+                        // sx={{ width: 32, height: 32 }}
+                      />
+                    ) : (
+                      <AccountCircle />
+                    )}
+                  </IconButton>
+                  <Menu
+                    id="menu-appbar"
+                    anchorEl={anchorEl}
+                    anchorOrigin={{
+                      vertical: "top",
+                      horizontal: "right",
+                    }}
+                    keepMounted
+                    transformOrigin={{
+                      vertical: "top",
+                      horizontal: "right",
+                    }}
+                    open={Boolean(anchorEl)}
+                    onClose={handleClose}
+                  >
+                    <MenuItem onClick={onLogout}>
+                      <ListItemIcon>
+                        <ExitToApp fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Logout</ListItemText>
+                    </MenuItem>
+                  </Menu>
+                </Box>
               </>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={onLogin}
-                sx={{ ml: 1 }}
-              >
-                Login
-              </Button>
             )}
           </Box>
         </Toolbar>
