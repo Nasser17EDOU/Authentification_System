@@ -4,8 +4,37 @@ import Footer from "./components/Footer";
 import AppRoutes from "./components/AppRoutes";
 import logo from "./assets/logo.png";
 import LoginPage from "./pages/LoginPage";
+import { useEffect, useRef, useState } from "react";
+import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 
 export default function App() {
+  const appBarRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const [appBarFooterHeight, setAppBarFooterHeight] = useState<{
+    appBarHeight: number;
+    footerHeight: number;
+  }>({
+    appBarHeight: 0,
+    footerHeight: 0,
+  });
+
+  useEffect(() => {
+    if (appBarRef.current) {
+      const rect = appBarRef.current.getBoundingClientRect();
+      setAppBarFooterHeight({
+        ...appBarFooterHeight,
+        appBarHeight: rect.height,
+      });
+    }
+    if (footerRef.current) {
+      const rect = footerRef.current.getBoundingClientRect();
+      setAppBarFooterHeight({
+        ...appBarFooterHeight,
+        footerHeight: rect.height,
+      });
+    }
+  }, []);
+
   return (
     <Box
       sx={{
@@ -17,12 +46,15 @@ export default function App() {
       }}
     >
       {/* Fixed AppBar at the top */}
-      <AppBar />
-      <Toolbar /> {/* This pushes content below the AppBar */}
+      <AppBar ref={appBarRef} />
+      <Toolbar sx={{ height: appBarFooterHeight.appBarHeight }} />{" "}
+      {/* This pushes content below the AppBar */}
       {/* Main content area with scroll */}
       <Box
         component="main"
         sx={{
+          display: "flex",
+          flexDirection: "column",
           flex: 1, // Takes all available space
           overflowY: "auto",
           position: "relative", // Needed for pseudo-element positioning
@@ -43,11 +75,11 @@ export default function App() {
           },
         }}
       >
-        {true ? <LoginPage /> : true ? <></> : <AppRoutes />}
+        {false ? <LoginPage /> : true ? <UpdatePasswordPage /> : <AppRoutes />}
       </Box>
-      <Toolbar />
+      <Toolbar sx={{ height: appBarFooterHeight.footerHeight }} />
       {/* Fixed Footer at the bottom */}
-      <Footer />
+      <Footer ref={footerRef} />
     </Box>
   );
 }

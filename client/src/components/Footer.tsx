@@ -1,10 +1,12 @@
 import { Box, Container, Typography, useTheme } from "@mui/material";
+import { forwardRef } from "react";
 
-const Footer = () => {
+const Footer = forwardRef<HTMLDivElement>((_, ref) => {
   const theme = useTheme();
 
   return (
     <Box
+      ref={ref}
       component="footer"
       sx={{
         position: "fixed", // Keeps it fixed on the screen
@@ -25,6 +27,6 @@ const Footer = () => {
       </Container>
     </Box>
   );
-};
+});
 
 export default Footer;

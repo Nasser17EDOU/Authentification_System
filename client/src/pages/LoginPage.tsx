@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-    Alert,
+  Alert,
   Box,
   Button,
   Container,
@@ -39,14 +39,13 @@ const LoginPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle login logic here
-   
   };
 
   return (
     <Container
       maxWidth="xs"
       sx={{
-        minHeight: "100vh",
+        flex: 1,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -94,6 +93,7 @@ const LoginPage = () => {
               onChange={handleChange("login")}
               label="Login"
               required
+              inputProps={{ maxLength: 20 }}
             />
           </FormControl>
 
@@ -126,6 +126,7 @@ const LoginPage = () => {
                 </InputAdornment>
               }
               label="Mot de passe"
+              inputProps={{ maxLength: 100 }}
               required
             />
           </FormControl>
@@ -143,30 +144,6 @@ const LoginPage = () => {
           >
             Se connecter
           </Button>
-
-          {/* <Typography
-            variant="body2"
-            align="center"
-            sx={{
-              mt: 2,
-              color: "text.secondary",
-            }}
-          >
-            Don't have an account?{" "}
-            <Typography
-              component="span"
-              color="primary"
-              sx={{
-                fontWeight: 600,
-                cursor: "pointer",
-                "&:hover": {
-                  textDecoration: "underline",
-                },
-              }}
-            >
-              Sign up
-            </Typography>
-          </Typography> */}
         </Box>
       </Paper>
     </Container>

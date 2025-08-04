@@ -9,11 +9,11 @@ const Welcome: React.FC = () => {
   return (
     <Box
       sx={{
+        flex: 1,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        minHeight: "calc(100vh - 128px)",
         p: 2,
         textAlign: "center",
       }}
