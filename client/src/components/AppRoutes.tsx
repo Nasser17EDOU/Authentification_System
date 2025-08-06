@@ -1,8 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import {
   containsPermission,
-  getAllMenuObjects,
   getAllPossiblePermissions,
+  getMenuObjectListByPermissions,
 } from "../utilities/linksAndPermissions.utilities";
 import Welcome from "../pages/Welcome";
 
@@ -11,7 +11,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/welcome" element={<Welcome />} />
-      {getAllMenuObjects
+      {getMenuObjectListByPermissions(userPermissions)
         .flatMap((menu) => menu.linkObjList)
         .map((linkObj) => (
           <Route

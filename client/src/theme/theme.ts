@@ -7,6 +7,8 @@ import { createTheme } from "@mui/material/styles";
 import { ThemeProvider } from "@mui/material/styles"; // VALUE import
 
 import type { PaletteMode } from "@mui/material/styles"; // TYPE import
+import { frFR } from "@mui/x-data-grid/locales";
+import { frFR as coreFrFR } from "@mui/material/locale";
 
 const getDesignTokens = (mode: PaletteMode) => ({
   palette: {
@@ -24,6 +26,8 @@ const getDesignTokens = (mode: PaletteMode) => ({
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
   },
+  frFR,
+  coreFrFR,
 });
 
 export const useSystemTheme = (): PaletteMode => {

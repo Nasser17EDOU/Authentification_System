@@ -1,4 +1,10 @@
-import { Box, Toolbar } from "@mui/material";
+import {
+  Box,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import AppBar from "./components/AppBar";
 import Footer from "./components/Footer";
 import AppRoutes from "./components/AppRoutes";
@@ -6,6 +12,7 @@ import logo from "./assets/logo.png";
 import LoginPage from "./pages/LoginPage";
 import { useEffect, useRef, useState } from "react";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage";
+import { getAllMenuObjects } from "./utilities/linksAndPermissions.utilities";
 
 export default function App() {
   const appBarRef = useRef<HTMLDivElement>(null);
@@ -17,6 +24,13 @@ export default function App() {
     appBarHeight: 0,
     footerHeight: 0,
   });
+
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const currentLinkObj = getAllMenuObjects
+    .flatMap((menu) => menu.linkObjList)
+    .find((linkObj) => linkObj.link === window.location.pathname);
 
   useEffect(() => {
     if (appBarRef.current) {
@@ -47,7 +61,20 @@ export default function App() {
     >
       {/* Fixed AppBar at the top */}
       <AppBar ref={appBarRef} />
-      <Toolbar sx={{ height: appBarFooterHeight.appBarHeight }} />{" "}
+      <Toolbar sx={{ height: appBarFooterHeight.appBarHeight }} />
+
+      {currentLinkObj && (
+        <>
+          <Typography
+            variant={isSmallScreen ? "h6" : "h5"}
+            fontWeight={700}
+            sx={{ bgcolor: theme.palette.text.secondary, p: isSmallScreen ? 1 : 2 }}
+          >
+            {currentLinkObj.linkLabel}
+          </Typography>
+        </>
+      )}
+
       {/* This pushes content below the AppBar */}
       {/* Main content area with scroll */}
       <Box
@@ -75,7 +102,7 @@ export default function App() {
           },
         }}
       >
-        {false ? <LoginPage /> : true ? <UpdatePasswordPage /> : <AppRoutes />}
+        {false ? <LoginPage /> : false ? <UpdatePasswordPage /> : <AppRoutes />}
       </Box>
       <Toolbar sx={{ height: appBarFooterHeight.footerHeight }} />
       {/* Fixed Footer at the bottom */}

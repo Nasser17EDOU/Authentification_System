@@ -8,6 +8,7 @@ import {
 import Welcome from "../pages/Welcome";
 import type { Permission } from "./interfaces/types.interface";
 import { configData } from "./configData.utilities";
+import ProfilsPage from "../pages/profiles/ProfilsPage";
 
 const adminMenuObject = {
   label: "Admin",
@@ -38,7 +39,7 @@ const adminMenuObject = {
     },
     {
       link: "/administration/gestionprofils",
-      component: <Welcome />,
+      component: <ProfilsPage />,
       linkLabel: "Gestion Des Profils",
       permission: "Consulter les profils" as Permission | null,
       linkIcon: <Menu />,
