@@ -36,6 +36,9 @@ export default function ProfilsPage() {
   const [profilPermissionData, setProfilPermissionData] = useState<{
     [profil_id: Profil["profil_id"]]: Permission[];
   }>({});
+  const [profilePermissionUpdating, setProfilePermissionUpdating] = useState<{
+    [profil_id: Profil["profil_id"]]: boolean;
+  }>({});
 
   const permissionObjList = getAllPossiblePermissions().map((perm, index) => ({
     id: index,
@@ -256,6 +259,11 @@ export default function ProfilsPage() {
   // };
 
   const handleSavePermissions = () => {
+    setProfilePermissionUpdating((prev) => ({
+      ...prev,
+      [selectedProfil!.profil_id]: true,
+    }));
+
     const gridRowSelectionModelIds: number[] = [
       ...gridRowSelectionModel.ids,
     ].map((id) => Number(id));
@@ -274,6 +282,13 @@ export default function ProfilsPage() {
       ...profilPermissionData,
       [selectedProfil!.profil_id]: permissions,
     });
+    setTimeout(() => {
+      setProfilePermissionUpdating((prev) => ({
+        ...prev,
+        [selectedProfil!.profil_id]: false,
+      }));
+    }, 10000);
+
     // setSelectedProfilPermissionObjIdList([]);
   };
 
@@ -359,16 +374,21 @@ export default function ProfilsPage() {
                 <Typography variant="h6" fontWeight={600}>
                   Liste des Permissions de "{selectedProfil.profil_lib}"
                 </Typography>
-                <ActionButton
-                  tooltip="Enregistrer les permissions"
-                  color="primary"
-                  onClick={handleSavePermissions}
-                  icon={<Save />}
-                />
+                {profilePermissionUpdating[selectedProfil.profil_id] ? (
+                  <UpdatingActionButton />
+                ) : (
+                  <ActionButton
+                    tooltip="Enregistrer les permissions"
+                    color="primary"
+                    onClick={handleSavePermissions}
+                    icon={<Save />}
+                  />
+                )}
               </Stack>
               <DataGrid<{ id: number; permission: Permission }>
                 rows={permissionObjList}
                 columns={permissionColumns}
+                loading={profilePermissionUpdating[selectedProfil.profil_id]}
                 disableRowSelectionOnClick
                 checkboxSelection
                 rowSelectionModel={gridRowSelectionModel}
@@ -408,42 +428,6 @@ export default function ProfilsPage() {
           )}
         </Stack>
       </Stack>
-
-      {/* <Grid container spacing={3}>
-        <Grid>
-          <Paper elevation={3} sx={{ p: 2, height: 600 }}>
-            <Typography variant="h6" gutterBottom>
-              Liste des Profils
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Paper>
-        </Grid>
-
-        <Grid>
-          <Paper
-            elevation={3}
-            sx={{ p: 2, height: 600, display: "flex", flexDirection: "column" }}
-          >
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              mb={2}
-            >
-              <Typography variant="h6">
-                Permissions:{" "}
-                {selectedProfil?.profil_lib || "Sélectionnez un profil"}
-              </Typography>
-              {selectedProfil && (
-                <Button variant="contained" onClick={handleSavePermissions}>
-                  Enregistrer
-                </Button>
-              )}
-            </Stack>
-            <Divider sx={{ mb: 2 }} />
-          </Paper>
-        </Grid>
-      </Grid> */}
     </Container>
   );
 }
