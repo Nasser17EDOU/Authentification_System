@@ -26,5 +26,6 @@ declare namespace NodeJS {
     SUPER_ADMIN_TEL?: string;
     SUPER_ADMIN_GENRE?: "Masculin" | "Féminin";
     SUPER_ADMIN_INIT_PASSWORD?: string; // Optional for security reasons
+    SUPER_ADMIN_PROFILE_LIB?: string; // Optional for security reasons
   }
 }

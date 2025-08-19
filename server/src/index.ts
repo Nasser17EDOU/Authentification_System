@@ -6,6 +6,9 @@ import cors from "cors";
 import http from "http";
 import logger from "./utils/logger.utils";
 import { getDbPool, initializeDatabase } from "./database/db_init";
+import userRouter from "./api/user/userRoutes";
+import passwordRouter from "./api/password/passwordRoutes";
+import profileRouter from "./api/profile/profileRoutes";
 
 dotenv.config();
 const MySQLStore = MySQLStoreFactory(session);
@@ -90,10 +93,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Routes
-// app.use("/auth", authRouter);
-// app.use("/user", userRouter);
-// app.use("/password", passwordRouter);
-// app.use("/profil", profileRouter);
+app.use("/user", userRouter);
+app.use("/password", passwordRouter);
+app.use("/profile", profileRouter);
 // app.use("/departement", departRouter);
 // app.use("/employe", employeRouter);
 // app.use("/mission", missionRouter);

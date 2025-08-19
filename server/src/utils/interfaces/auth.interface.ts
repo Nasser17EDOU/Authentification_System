@@ -1,5 +1,7 @@
+import { Session } from "express-session";
 import type { Permission } from "./types.interface";
 import type { User } from "./user.interface";
+import { Request } from "express";
 
 export interface LoginCredential {
   login: string;
@@ -12,18 +14,25 @@ export interface UpdateUserPassCredential {
 }
 
 export interface ApiResponse<T> {
-  isUserLogged?: boolean;
-  isUserDelete?: boolean;
-  isUserActive?: boolean;
-  isUserPassInitial?: boolean;
-  isUserPassExpired?: boolean;
-  success: boolean;
+  authStatus:
+    | "Logged out"
+    | "Logged in"
+    | "Account delete"
+    | "Account inactive"
+    | "Initialized password"
+    | "Expired password";
   currentUser?: {
     nom: User["nom"];
     prenom: User["prenom"];
     genre: User["genre"];
+    permissions: Permission[];
   };
-  permissions?: Permission[];
   data?: T;
   message?: string;
+}
+
+export interface AuthRequest extends Request {
+  session: Session & {
+    user_id?: number;
+  };
 }

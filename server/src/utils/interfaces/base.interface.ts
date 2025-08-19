@@ -1,3 +1,5 @@
+import { RowDataPacket } from "mysql2";
+
 // Base interface for common fields
 export interface BaseRecord {
   is_delete: boolean;
@@ -17,7 +19,12 @@ export interface NewRecord {
 
 // interface key to ignore for update Record
 export interface UpdateRecord {
+  is_delete: boolean;
   create_date: Date;
   createur_id: number | null;
   mod_date: Date | null;
+}
+
+export interface CountResult extends RowDataPacket {
+  count: number;
 }

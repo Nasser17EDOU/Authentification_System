@@ -2,19 +2,11 @@
 import dotenv from "dotenv";
 import mysql, { PoolConnection, RowDataPacket } from "mysql2/promise";
 import logger from "../utils/logger.utils";
-import {
-  Genre,
-  Permission,
-  SqlTableType,
-} from "../utils/interfaces/types.interface";
+import { Genre, Permission } from "../utils/interfaces/types.interface";
 import path from "path";
 import fs from "fs";
 import { NewUser } from "../utils/interfaces/user.interface";
-import { NewPassParam } from "../utils/interfaces/passParam.interface";
 import bcrypt from "bcryptjs";
-import { NewUserPass } from "../utils/interfaces/userPass.interface";
-import { NewProfil } from "../utils/interfaces/profil.interface";
-import { NewProfilPermission } from "../utils/interfaces/profilPermission.interface";
 import { UserProfil } from "../utils/interfaces/userProfil.interface";
 
 dotenv.config();
@@ -29,6 +21,9 @@ const newSuperAdmin: NewUser = {
   genre: (process.env.SUPER_ADMIN_GENRE as Genre | undefined) || "Masculin",
   createur_id: null,
 };
+
+export const superAdminProfileLib =
+  process.env.SUPER_ADMIN_PROFILE_LIB || "Super administrateur";
 
 const pool: mysql.Pool = mysql.createPool({
   // -- Connection Basics --
@@ -45,7 +40,7 @@ const pool: mysql.Pool = mysql.createPool({
 
   // -- Timezone & Date Handling --
   timezone: "Z", // Force UTC (good practice!)
-  dateStrings: true, // Return dates as strings (not JavaScript Dates)
+  dateStrings: false, // Return dates as strings (not JavaScript Dates)
   connectAttributes: {
     session_time_zone: "+00:00", // Align with `timezone: "Z"`
     program_name: process.env.APP_NAME,
@@ -55,12 +50,24 @@ const pool: mysql.Pool = mysql.createPool({
   namedPlaceholders: true, // Use `:name` instead of `?`
   decimalNumbers: true, // Return decimals as numbers (not strings)
   typeCast: (field, next) => {
-    // Custom type handling
-    if (field.type === "TINY" && field.length === 1) {
-      return field.string() === "1"; // Convert TINYINT(1) to boolean
+    // Enhanced type casting
+    switch (field.type) {
+      case "DATETIME":
+      case "TIMESTAMP":
+        // Convert to JS Date, preserving UTC
+        return field.string() ? new Date(field.string() + "Z") : null;
+      case "DATE":
+        // Return as ISO date string (YYYY-MM-DD)
+        return field.string();
+      case "TINY":
+        if (field.length === 1) return field.string() === "1"; // TINYINT(1) → boolean
+        return next();
+      default:
+        return next();
     }
-    return next();
   },
+  supportBigNumbers: true, // For safe BIGINT handling
+  bigNumberStrings: false, // Return as numbers when safe
 
   // -- Connection Health --
   idleTimeout: 30000, // Close idle connections after 30s
@@ -93,64 +100,18 @@ export async function withConnection<T>(
 }
 
 // Transaction helper (unchanged from your original)
-export async function withTransaction<T, U>(params: {
-  transactionType: "insert" | "update";
-  transactionTable: SqlTableType;
-  record: U | U[];
-  idKey?: keyof U;
-  recorderId: number;
-  callback: (conn: PoolConnection) => Promise<T>;
-}): Promise<T> {
-  const { transactionType, transactionTable, record, idKey, recorderId } =
-    params;
-  const records = Array.isArray(record) ? record : [record];
-  const operationId = Date.now();
-
-  // Prepare base log metadata
-  const baseLogMeta = {
-    operationId,
-    type: transactionType,
-    table: transactionTable,
-    recorderId,
-    recordCount: records.length,
-    timestamp: new Date().toISOString(),
-  };
-
+export async function withTransaction<T>(
+  callback: (conn: PoolConnection) => Promise<T>
+): Promise<T> {
   return withConnection(async (conn) => {
     try {
       await conn.beginTransaction();
-      const result = await params.callback(conn);
+      const result = await callback(conn);
       await conn.commit();
-
-      // Determine returned IDs
-      let affectedIds: unknown[] = [];
-      if (transactionType === "insert") {
-        affectedIds = Array.isArray(result)
-          ? result // Assume callback returned ID array for bulk insert
-          : [result]; // Single ID
-      } else if (idKey) {
-        affectedIds = records.map((r) => r[idKey]);
-      }
-
-      // Log success with affected IDs
-      logger.info(`Transaction succeeded`, {
-        ...baseLogMeta,
-        affectedIds,
-        affectedCount: affectedIds.length,
-        // Include first 3 records for context (sanitized in prod)
-        row: records,
-      });
-
       return result;
     } catch (error) {
       await conn.rollback();
-
-      // Log failure with error and attempted data
-      logger.error(`Transaction failed`, {
-        ...baseLogMeta,
-        error,
-      });
-
+      logger.error("Transaction failed:", error);
       throw error;
     }
   });
@@ -187,7 +148,27 @@ async function setupSuperAdmin(
     );
 
     if (existing.length > 0) {
-      return { user_id: existing[0].user_id };
+      const user_id = existing[0].user_id;
+
+      // Destructure to exclude createur_id and prevent it from being updated
+      const { createur_id, ...adminBaseData } = newSuperAdmin;
+
+      // Prepare update data
+      const dataToUpdate = {
+        ...adminBaseData,
+        is_active: true,
+        is_delete: false,
+        modifieur_id: user_id, // Using the existing user's ID as modifier
+        mod_date: null, // Will auto-update to current timestamp
+      };
+
+      // Execute update
+      await conn.query<mysql.ResultSetHeader>(
+        `UPDATE users SET ? WHERE user_id = ?`,
+        [dataToUpdate, user_id]
+      );
+
+      return { user_id };
     }
 
     const [result] = await conn.query<mysql.ResultSetHeader>(
@@ -195,7 +176,7 @@ async function setupSuperAdmin(
       [newSuperAdmin]
     );
 
-    logger.info("Super admin user created successfully");
+    logger.info("Super admin user set successfully");
     return { user_id: result.insertId };
   } catch (error) {
     logger.error("Error creating super admin:", error);
@@ -215,11 +196,12 @@ async function setupPasswordPolicy(
 
     // Only create if doesn't exist (no updates)
     if (existingPassParam.length === 0) {
-      const newPassParam: NewPassParam = {
-        pass_expir_day: 90,
-        modifieur_id: adminId,
-      };
-      await conn.query(`INSERT INTO pass_params SET ?`, [newPassParam]);
+      await conn.query(`INSERT INTO pass_params SET ?`, [
+        {
+          pass_expir_day: 90,
+          modifieur_id: adminId,
+        },
+      ]);
       logger.info("Password policy created");
     }
 
@@ -235,13 +217,14 @@ async function setupPasswordPolicy(
         process.env.SUPER_ADMIN_INIT_PASSWORD || "SuperAdminPassword",
         10
       );
-      const newUserPass: NewUserPass = {
-        user_id: adminId,
-        pass: hashedPassword,
-        is_init: true,
-        createur_id: adminId,
-      };
-      await conn.query(`INSERT INTO user_pass SET ?`, [newUserPass]);
+
+      await conn.query(`INSERT INTO user_pass SET ?`, [
+        {
+          user_id: adminId,
+          pass: hashedPassword,
+          is_init: true,
+        },
+      ]);
       logger.info("Super admin password set");
     }
   } catch (error) {
@@ -259,7 +242,8 @@ async function setupSuperAdminProfile(
     let profileId: number;
     const [existingProfile] = await conn.query<mysql.RowDataPacket[]>(
       `SELECT profil_id, is_delete FROM profils 
-       WHERE UPPER(profil_lib) = UPPER('Super administrateur') LIMIT 1`
+       WHERE UPPER(profil_lib) = UPPER(?) LIMIT 1`,
+      [superAdminProfileLib]
     );
 
     if (existingProfile.length > 0) {
@@ -273,16 +257,17 @@ async function setupSuperAdminProfile(
         logger.info("Reactivated existing super admin profile");
       }
     } else {
-      const newProfile: NewProfil = {
-        createur_id: adminId,
-        profil_lib: "Super administrateur",
-      };
       const [result] = await conn.query<mysql.ResultSetHeader>(
         `INSERT INTO profils SET ?`,
-        [newProfile]
+        [
+          {
+            profil_lib: superAdminProfileLib,
+            createur_id: adminId,
+          },
+        ]
       );
       profileId = result.insertId;
-      logger.info("Created new super admin profile");
+      logger.info("Set super admin profile");
     }
 
     // 2. Set permissions
@@ -301,12 +286,10 @@ async function setupSuperAdminProfile(
       "Modifier les paramètres des mots de passe",
       "Consulter les connexions des utilisateurs",
     ];
-    const newProfilPermissions: NewProfilPermission[] = permissions.map(
-      (permis) => ({
-        profil_id: profileId,
-        permission: permis,
-      })
-    );
+    const newProfilPermissions = permissions.map((permis) => ({
+      profil_id: profileId,
+      permission: permis,
+    }));
 
     await conn.query(
       `INSERT IGNORE INTO profil_permissions (profil_id, permission) VALUES ?`,
@@ -326,18 +309,11 @@ async function setupSuperAdminProfile(
       [adminId, profileId]
     );
 
-    if (existingAssignment.length > 0) {
-      await conn.query(
-        `UPDATE user_profils SET is_delete = FALSE, modifieur_id = ? 
-         WHERE user_profil_id = ?`,
-        [adminId, existingAssignment[0].user_profil_id]
-      );
-    } else {
+    if (!(existingAssignment.length > 0)) {
       await conn.query(`INSERT INTO user_profils SET ?`, [
         {
           user_id: adminId,
           profil_id: profileId,
-          createur_id: adminId,
         },
       ]);
     }
