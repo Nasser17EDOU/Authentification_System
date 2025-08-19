@@ -17,6 +17,7 @@ export interface NewRecord {
 
 // interface key to ignore for update Record
 export interface UpdateRecord {
+  is_delete: boolean;
   create_date: Date;
   createur_id: number | null;
   mod_date: Date | null;

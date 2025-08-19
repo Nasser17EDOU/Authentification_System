@@ -3,16 +3,6 @@ import type { Permission } from "./types.interface";
 import type { User } from "./user.interface";
 import { Request } from "express";
 
-export interface LoginCredential {
-  login: string;
-  pass: string;
-}
-
-export interface UpdateUserPassCredential {
-  oldPass: string;
-  newPass: string;
-}
-
 export interface ApiResponse<T> {
   authStatus:
     | "Logged out"

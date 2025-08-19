@@ -16,5 +16,8 @@ export interface User extends BaseRecord {
 // New / Update DTO Types
 // ======================
 
-export type NewUser = Omit<User, "user_id" | "is_active" | keyof NewRecord>;
-export type UserToUpdate = Omit<User, keyof UpdateRecord>;
+export type NewUser = Omit<
+  User,
+  "user_id" | "is_active" | "createur_id" | keyof NewRecord
+>;
+export type UserToUpdate = Omit<User, "modifieur_id" | keyof UpdateRecord>;
