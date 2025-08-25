@@ -17,4 +17,4 @@ export interface User extends BaseRecord {
 // ======================
 
 export type NewUser = Omit<User, "user_id" | "is_active" | keyof NewRecord>;
-export type UserToUpdate = Omit<User, keyof UpdateRecord>;
+export type UserToUpdate = Omit<User, "is_active" | keyof UpdateRecord>;

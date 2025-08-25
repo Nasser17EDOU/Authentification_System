@@ -13,8 +13,11 @@ import LoginPage from "./pages/LoginPage";
 import { useEffect, useRef, useState } from "react";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage";
 import { getAllMenuObjects } from "./utilities/linksAndPermissions.utilities";
+import { sessionDataContext } from "./context/SessionContext";
+import { userApi } from "./api/user.api";
 
 export default function App() {
+  const { sessionData, updateSessionData } = sessionDataContext();
   const appBarRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const [appBarFooterHeight, setAppBarFooterHeight] = useState<{
@@ -32,7 +35,13 @@ export default function App() {
     .flatMap((menu) => menu.linkObjList)
     .find((linkObj) => linkObj.link === window.location.pathname);
 
+  const fetchSession = async () => {
+    await userApi(updateSessionData).getUserSessionApi();
+  };
+
   useEffect(() => {
+    fetchSession();
+
     if (appBarRef.current) {
       const rect = appBarRef.current.getBoundingClientRect();
       setAppBarFooterHeight({
@@ -68,7 +77,10 @@ export default function App() {
           <Typography
             variant={isSmallScreen ? "h6" : "h5"}
             fontWeight={700}
-            sx={{ bgcolor: theme.palette.text.secondary, p: isSmallScreen ? 1 : 2 }}
+            sx={{
+              bgcolor: theme.palette.text.secondary,
+              p: isSmallScreen ? 1 : 2,
+            }}
           >
             {currentLinkObj.linkLabel}
           </Typography>
@@ -102,7 +114,14 @@ export default function App() {
           },
         }}
       >
-        {false ? <LoginPage /> : false ? <UpdatePasswordPage /> : <AppRoutes />}
+        {sessionData.authStatus === "Logged in" ? (
+          <AppRoutes />
+        ) : sessionData.authStatus === "Initialized password" ||
+          sessionData.authStatus === "Expired password" ? (
+          <UpdatePasswordPage />
+        ) : (
+          <LoginPage />
+        )}
       </Box>
       <Toolbar sx={{ height: appBarFooterHeight.footerHeight }} />
       {/* Fixed Footer at the bottom */}

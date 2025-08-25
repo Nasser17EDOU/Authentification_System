@@ -1,16 +1,15 @@
-// theme.tsx
-import * as React from "react"; // JSX
+import * as React from "react";
 import { useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
+import { createTheme, type ThemeOptions } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import type { PaletteMode } from "@mui/material/styles";
 
-import { createTheme } from "@mui/material/styles";
-import { ThemeProvider } from "@mui/material/styles"; // VALUE import
-
-import type { PaletteMode } from "@mui/material/styles"; // TYPE import
+// Import French locale for DataGrid
 import { frFR } from "@mui/x-data-grid/locales";
 import { frFR as coreFrFR } from "@mui/material/locale";
 
-const getDesignTokens = (mode: PaletteMode) => ({
+const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
   palette: {
     mode,
     ...(mode === "light"
@@ -26,8 +25,6 @@ const getDesignTokens = (mode: PaletteMode) => ({
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
   },
-  frFR,
-  coreFrFR,
 });
 
 export const useSystemTheme = (): PaletteMode => {
@@ -37,8 +34,21 @@ export const useSystemTheme = (): PaletteMode => {
   return prefersDarkMode ? "dark" : "light";
 };
 
-export const createAppTheme = (mode: PaletteMode) =>
-  createTheme(getDesignTokens(mode));
+export const createAppTheme = (mode: PaletteMode) => {
+  const themeOptions = getDesignTokens(mode);
+  const theme = createTheme(themeOptions, frFR, coreFrFR);
+
+  // Add DataGrid localization after theme creation
+  return createTheme(theme, {
+    components: {
+      MuiDataGrid: {
+        defaultProps: {
+          localeText: frFR.components.MuiDataGrid.defaultProps.localeText,
+        },
+      },
+    },
+  });
+};
 
 export const AppThemeProvider = ({
   children,

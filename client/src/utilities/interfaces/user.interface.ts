@@ -20,4 +20,7 @@ export type NewUser = Omit<
   User,
   "user_id" | "is_active" | "createur_id" | keyof NewRecord
 >;
-export type UserToUpdate = Omit<User, "modifieur_id" | keyof UpdateRecord>;
+export type UserToUpdate = Omit<
+  User,
+  "is_active" | "modifieur_id" | keyof UpdateRecord
+>;

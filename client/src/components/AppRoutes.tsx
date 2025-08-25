@@ -1,13 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import {
   containsPermission,
-  getAllPossiblePermissions,
   getMenuObjectListByPermissions,
 } from "../utilities/linksAndPermissions.utilities";
 import Welcome from "../pages/Welcome";
+import { sessionDataContext } from "../context/SessionContext";
 
 const AppRoutes = () => {
-  const userPermissions = getAllPossiblePermissions();
+  const { sessionData } = sessionDataContext();
+  const userPermissions = sessionData.currentUser?.permissions ?? [];
   return (
     <Routes>
       <Route path="/welcome" element={<Welcome />} />

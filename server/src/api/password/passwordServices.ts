@@ -5,6 +5,7 @@ import { withConnection, withTransaction } from "../../database/db_init";
 import { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import logger from "../../utils/logger.utils";
 import { UserPass } from "../../utils/interfaces/userPass.interface";
+import { addDays } from "date-fns";
 
 const passwordServices = {
   // Get password parameters
@@ -59,6 +60,7 @@ const passwordServices = {
          ORDER BY create_date DESC LIMIT 1`,
         [user_id]
       );
+
       return rows[0] || null;
     });
   },
@@ -153,30 +155,22 @@ const passwordServices = {
   },
 
   // Get password expiration date for user
-  getPasswordExpirationServ: async (
-    user_id: number
-  ): Promise<string | null> => {
-    return withConnection(async (conn: PoolConnection) => {
-      // Get password parameters first
-      const params = await passwordServices.getPassParamServ();
-      const expirDays = params ? params.pass_expir_day : 90;
+  getPasswordExpirationServ: async (user_id: number): Promise<Date | null> => {
+    // Get password parameters first
+    const params = await passwordServices.getPassParamServ();
 
-      // Get current password
-      const currentPass = await passwordServices.getCurrentUserPasswordServ(
-        user_id
-      );
-      if (!currentPass) return null;
+    // Get current password
+    const currentPass = await passwordServices.getCurrentUserPasswordServ(
+      user_id
+    );
 
-      // Calculate expiration
-      const [rows] = await conn.query<
-        ({ expiration_date: string } & RowDataPacket)[]
-      >(`SELECT DATE_ADD(?, INTERVAL ? DAY) as expiration_date`, [
-        currentPass.create_date,
-        expirDays,
-      ]);
+    if (!currentPass) return null;
 
-      return rows[0].expiration_date;
-    });
+    // Calculate expiration
+    return addDays(
+      new Date(currentPass.create_date),
+      params ? params.pass_expir_day : 90
+    );
   },
 
   // Check if password is expired

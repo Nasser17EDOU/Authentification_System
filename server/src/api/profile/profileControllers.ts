@@ -111,22 +111,21 @@ const profileControllers = {
   createProfileControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
       const response = req.apiResponse!;
 
-      const profil_lib = (req.body as string).trim().toUpperCase();
+      const profil_lib = (req.body.profil_lib as string).trim().toUpperCase();
 
       const similProfile = await profileServices.getProfileByLibServ(
         profil_lib
       );
 
       if (similProfile?.is_delete) {
-        await profileServices.updateProfileServ(
+        await profileServices.restaureDelProfileServ(
           similProfile.profil_id,
-          profil_lib,
           req.session.user_id!
         );
       } else if (!similProfile) {
@@ -141,10 +140,9 @@ const profileControllers = {
         : similProfile.is_delete
         ? "Profil restauré avec succès"
         : "Ce profil existe déjà";
+      response.data = !similProfile || similProfile.is_delete;
 
-      res
-        .status(!similProfile || similProfile.is_delete ? 200 : 409)
-        .send(response);
+      res.status(response.data ? 200 : 409).send(response);
       return;
     }
   ),
@@ -152,7 +150,7 @@ const profileControllers = {
   updateProfileControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -176,6 +174,7 @@ const profileControllers = {
       response.message = exist
         ? "Ce profil existe déjà"
         : "Profil mis à jour avec succès";
+      response.data = !exist;
 
       res.status(exist ? 409 : 200).send(response); // OK
       return;
@@ -185,7 +184,7 @@ const profileControllers = {
   deleteProfileControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -198,6 +197,7 @@ const profileControllers = {
       );
 
       response.message = "Profil supprimé avec succès";
+      response.data = true;
 
       res.status(200).send(response); // OK
       return;
@@ -207,7 +207,7 @@ const profileControllers = {
   updateProfilePermissionsControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -223,6 +223,7 @@ const profileControllers = {
       );
 
       response.message = "Mise à jour des permission éffectuée avec succès.";
+      response.data = true;
 
       res.status(200).send(response); // OK
       return;
@@ -232,7 +233,7 @@ const profileControllers = {
   updateUserProfilesControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -248,6 +249,7 @@ const profileControllers = {
       );
 
       response.message = "Mise à jour des profils éffectuée avec succès.";
+      response.data = true;
 
       res.status(200).send(response); // OK
       return;

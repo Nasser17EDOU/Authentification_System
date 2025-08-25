@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import {
-  Alert,
   Box,
   Button,
+  CircularProgress,
   Container,
   FormControl,
   IconButton,
@@ -16,14 +16,19 @@ import {
   useTheme,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { useMutation } from "@tanstack/react-query";
+import { infoDialog } from "../components/infoDialog";
+import { sessionDataContext } from "../context/SessionContext";
+import { userApi } from "../api/user.api";
 
 const LoginPage = () => {
   const theme = useTheme();
+  const userApiList = userApi(sessionDataContext().updateSessionData);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [formData, setFormData] = useState({
     login: "",
-    password: "",
+    pass: "",
     showPassword: false,
   });
 
@@ -36,9 +41,32 @@ const LoginPage = () => {
     setFormData({ ...formData, showPassword: !formData.showPassword });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Login mutation using React Query
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { login: string; pass: string }) => {
+      // This will automatically update session via your BaseApi
+      return await userApiList.authUserApi(credentials);
+    },
+    onSuccess: async (data) => {
+      if (data) {
+        await userApiList.getUserSessionApi();
+      }
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
+    const login = formData.login.trim();
+    const pass = formData.pass.trim();
+
+    if (!login || !pass) {
+      return await infoDialog({
+        message: "Veuillez renseigner le formulaire correctement.",
+        severity: "error",
+      });
+    }
+
+    loginMutation.mutate({ login, pass });
   };
 
   return (
@@ -102,8 +130,8 @@ const LoginPage = () => {
             <OutlinedInput
               id="password"
               type={formData.showPassword ? "text" : "password"}
-              value={formData.password}
-              onChange={handleChange("password")}
+              value={formData.pass}
+              onChange={handleChange("pass")}
               endAdornment={
                 <InputAdornment position="end">
                   <Tooltip
@@ -135,6 +163,7 @@ const LoginPage = () => {
             type="submit"
             variant="contained"
             size="large"
+            disabled={loginMutation.isPending}
             fullWidth
             sx={{
               mt: 2,
@@ -142,7 +171,7 @@ const LoginPage = () => {
               fontSize: "1rem",
             }}
           >
-            Se connecter
+            {loginMutation.isPending ? <CircularProgress /> : "Se connecter"}
           </Button>
         </Box>
       </Paper>

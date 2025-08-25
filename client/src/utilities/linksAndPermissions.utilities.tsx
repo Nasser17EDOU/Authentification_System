@@ -5,10 +5,12 @@ import {
   Password,
   Menu,
 } from "@mui/icons-material";
-import Welcome from "../pages/Welcome";
 import type { Permission } from "./interfaces/types.interface";
 import { configData } from "./configData.utilities";
 import ProfilsPage from "../pages/profiles/ProfilsPage";
+import UserLoggings from "../pages/user_loggings/UserLoggings";
+import PassParam from "../pages/pass_param/PassParam";
+import Users from "../pages/users/Users";
 
 const adminMenuObject = {
   label: "Admin",
@@ -16,14 +18,14 @@ const adminMenuObject = {
   linkObjList: [
     {
       link: "/administration/gestionutilisateurs",
-      component: <Welcome />,
+      component: <Users />,
       linkLabel: "Gestion Des Utilisateurs",
       permission: "Consulter les utilisateurs" as Permission | null,
       linkIcon: <ManageAccounts />,
     },
     {
       link: "/administration/configurationmotdepasse",
-      component: <Welcome />,
+      component: <PassParam />,
       linkLabel: "Paramètres Des Mots de Passe",
       permission:
         "Consulter les paramètres des mots de passe" as Permission | null,
@@ -31,7 +33,7 @@ const adminMenuObject = {
     },
     {
       link: "/administration/connexionutilisateurs",
-      component: <Welcome />,
+      component: <UserLoggings />,
       linkLabel: "Connexions Des Utilisateurs",
       permission:
         "Consulter les connexions des utilisateurs" as Permission | null,
@@ -71,6 +73,16 @@ export const containsPermission = (
   permissionToCheck: Permission,
   permissionList: Permission[]
 ) => permissionList.some((permission) => permission === permissionToCheck);
+
+export const containsAllPermissions = (
+  permissionsToCheck: Permission[],
+  permissionList: Permission[]
+) => permissionsToCheck.every((pc) => permissionList.some((pl) => pl === pc));
+
+export const containsSomePermissions = (
+  permissionsToCheck: Permission[],
+  permissionList: Permission[]
+) => permissionsToCheck.some((pc) => permissionList.some((pl) => pl === pc));
 
 export const getAllPossiblePermissions = (): Permission[] => {
   return (

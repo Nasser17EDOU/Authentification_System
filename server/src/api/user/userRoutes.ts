@@ -12,7 +12,7 @@ userRouter.get(
   userControllers.getUserSessionControl
 );
 
-userRouter.get(
+userRouter.post(
   "/auth",
   requestMiddlewares.requestMiddleware,
   userControllers.authUserControl
@@ -54,13 +54,19 @@ userRouter.put(
   userControllers.updateUserControl
 );
 
+userRouter.put(
+  "/changeUserStatus",
+  requestMiddlewares.requestMiddlewareWithSessionCheck,
+  userControllers.changeUserStatusControl
+);
+
 userRouter.delete(
   "/user/:user_id",
   requestMiddlewares.requestMiddlewareWithSessionCheck,
   userControllers.deleteUserControl
 );
 
-userRouter.get(
+userRouter.post(
   "/userLoggings",
   requestMiddlewares.requestMiddlewareWithSessionCheck,
   userControllers.searchUserLoggingsControl

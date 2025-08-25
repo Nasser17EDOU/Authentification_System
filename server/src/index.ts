@@ -55,7 +55,7 @@ app.use(
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -67,6 +67,14 @@ app.use(session(sessionOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// Routes
+app.use("/user", userRouter);
+app.use("/password", passwordRouter);
+app.use("/profile", profileRouter);
+// app.use("/departement", departRouter);
+// app.use("/employe", employeRouter);
+// app.use("/mission", missionRouter);
+
 app.get("/health", (req: Request, res: Response) => {
   res.json({
     status: "healthy",
@@ -75,30 +83,21 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  logger.error(`[${new Date().toISOString()}] ${err.stack || err.message}`);
-  res.json({
-    success: false,
-    message:
-      "Une erreur est survenue. Réessayez plus tard. Si cela persiste, contactez l'Administrateur.",
-  });
-});
+// app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+//   logger.error(`[${new Date().toISOString()}] ${err.stack || err.message}`);
+//   res.json({
+//     success: false,
+//     message:
+//       "Une erreur est survenue. Réessayez plus tard. Si cela persiste, contactez l'Administrateur.",
+//   });
+// });
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   logger.error(`404: ${req.method} ${req.path}`);
-  res.json({
-    success: false,
+  res.status(404).send({
     message: "Route non trouvée.",
   });
 });
-
-// Routes
-app.use("/user", userRouter);
-app.use("/password", passwordRouter);
-app.use("/profile", profileRouter);
-// app.use("/departement", departRouter);
-// app.use("/employe", employeRouter);
-// app.use("/mission", missionRouter);
 
 async function startServer() {
   try {

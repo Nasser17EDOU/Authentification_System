@@ -14,110 +14,91 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  type AlertColor,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import InfoModal from "../components/InfoModal";
-import { confirmDialog } from "../components/confirmDialog";
+import { useMutation } from "@tanstack/react-query";
+import { sessionDataContext } from "../context/SessionContext";
+import { passwordApi } from "../api/password.api";
+import { infoDialog } from "../components/infoDialog";
 
 const UpdatePasswordPage = () => {
   const theme = useTheme();
+  const { sessionData, updateSessionData } = sessionDataContext();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [formData, setFormData] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    showOldPassword: false,
-    showNewPassword: false,
+    oldPass: "",
+    newPass: "",
+    confirmPass: "",
+    showOldPass: false,
+    showNewPass: false,
   });
 
   const [focusedField, setFocusedField] = useState<
-    null | "oldPassword" | "newPassword" | "confirmPassword"
+    null | "oldPass" | "newPass" | "confirmPass"
   >(null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [infoModalProps, setInfoModalProps] = useState({
-    open: false,
-    severity: "info" as AlertColor,
-    title: "Mise à jour du mot de passe" as string | undefined,
-    message: "",
-  });
-
-  const newPasswordRequirements = useMemo(
+  const newPassRequirements = useMemo(
     () => ({
-      minLength: formData.newPassword.trim().length >= 8,
-      hasUppercase: /[A-Z]/.test(formData.newPassword.trim()),
-      hasLowercase: /[a-z]/.test(formData.newPassword.trim()),
-      hasDigitOrSpecialChar: /[\d\W_]/.test(formData.newPassword.trim()),
-      differentToOldPassword:
-        formData.newPassword.trim() !== formData.oldPassword.trim(),
+      minLength: formData.newPass.trim().length >= 8,
+      hasUppercase: /[A-Z]/.test(formData.newPass.trim()),
+      hasLowercase: /[a-z]/.test(formData.newPass.trim()),
+      hasDigitOrSpecialChar: /[\d\W_]/.test(formData.newPass.trim()),
+      differentToOldPass: formData.newPass.trim() !== formData.oldPass.trim(),
     }),
-    [formData.newPassword, formData.oldPassword]
+    [formData.newPass, formData.oldPass]
   );
 
-  const canEditNewPassword = formData.oldPassword.trim() !== "";
+  const canEditNewPass = formData.oldPass.trim() !== "";
 
-  const canEditConfirmPassword =
-    canEditNewPassword &&
-    newPasswordRequirements.minLength &&
-    newPasswordRequirements.hasUppercase &&
-    newPasswordRequirements.hasLowercase &&
-    newPasswordRequirements.hasDigitOrSpecialChar &&
-    newPasswordRequirements.differentToOldPassword;
+  const canEditConfirmPass =
+    canEditNewPass &&
+    newPassRequirements.minLength &&
+    newPassRequirements.hasUppercase &&
+    newPassRequirements.hasLowercase &&
+    newPassRequirements.hasDigitOrSpecialChar &&
+    newPassRequirements.differentToOldPass;
 
   const canSubmit =
-    canEditConfirmPassword &&
-    formData.confirmPassword.trim() === formData.newPassword.trim();
+    canEditConfirmPass &&
+    formData.confirmPass.trim() === formData.newPass.trim();
 
   const handleChange =
-    (prop: "oldPassword" | "newPassword" | "confirmPassword") =>
+    (prop: "oldPass" | "newPass" | "confirmPass") =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData({ ...formData, [prop]: event.target.value });
     };
 
-  const handleClickShowPassword = (
-    prop: "showOldPassword" | "showNewPassword"
-  ) => {
+  const handleClickShowPass = (prop: "showOldPass" | "showNewPass") => {
     setFormData({ ...formData, [prop]: !formData[prop] });
   };
 
+  // Login mutation using React Query
+  const updatePassMutation = useMutation({
+    mutationFn: async (credentials: { oldPass: string; pass: string }) => {
+      // This will automatically update session via your BaseApi
+
+      return await passwordApi(updateSessionData).updateUserPassApi({
+        ...credentials,
+        isUpdate: sessionData.authStatus === "Initialized password",
+      });
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    const confirmation = await confirmDialog({
-      title: "Confirmer la mise à jour",
-      message: "Êtes-vous sûr de vouloir mettre à jour votre mot de passe ?",
-      confirmText: "Ouir",
-      cancelText: "Non",
-      severity: "info",
-    });
-    if (!confirmation) {
-      setIsSubmitting(false);
-      return;
-    }
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // throw new Error("Simulated error"); // Simulate an error for demonstration
-      setInfoModalProps({
-        ...infoModalProps,
-        severity: "success",
-        message: "Mot de passe mis à jour avec succès!",
-        open: true,
-      });
-      // Reset form or redirect
-    } catch (error) {
-      setInfoModalProps({
-        ...infoModalProps,
+    const oldPass = formData.oldPass.trim();
+    const pass = formData.confirmPass.trim();
+
+    if (!oldPass || !pass) {
+      return await infoDialog({
+        message: "Veuillez renseigner le formulaire correctement.",
         severity: "error",
-        message: "Échec de la mise à jour du mot de passe. Veuillez réessayer.",
-        open: true,
       });
-    } finally {
-      setIsSubmitting(false);
     }
+
+    updatePassMutation.mutate({ oldPass, pass });
   };
 
   return (
@@ -167,25 +148,25 @@ const UpdatePasswordPage = () => {
           <FormControl variant="outlined" fullWidth>
             <InputLabel htmlFor="password">Ancien mot de passe</InputLabel>
             <OutlinedInput
-              id="oldPassword"
-              type={formData.showOldPassword ? "text" : "password"}
-              value={formData.oldPassword}
-              onChange={handleChange("oldPassword")}
-              onFocus={() => setFocusedField("oldPassword")}
+              id="oldPass"
+              type={formData.showOldPass ? "text" : "password"}
+              value={formData.oldPass}
+              onChange={handleChange("oldPass")}
+              onFocus={() => setFocusedField("oldPass")}
               onBlur={() => setFocusedField(null)}
               endAdornment={
                 <InputAdornment position="end">
                   <Tooltip
                     title={`${
-                      formData.showOldPassword ? "Cacher" : "Voir"
+                      formData.showOldPass ? "Cacher" : "Voir"
                     } le mot de passe`}
                   >
                     <IconButton
                       aria-label="toggle password visibility"
-                      onClick={() => handleClickShowPassword("showOldPassword")}
+                      onClick={() => handleClickShowPass("showOldPass")}
                       edge="end"
                     >
-                      {formData.showOldPassword ? (
+                      {formData.showOldPass ? (
                         <Visibility />
                       ) : (
                         <VisibilityOff />
@@ -203,25 +184,25 @@ const UpdatePasswordPage = () => {
           <FormControl variant="outlined" fullWidth>
             <InputLabel htmlFor="password">Nouveau mot de passe</InputLabel>
             <OutlinedInput
-              id="newPassword"
-              type={formData.showNewPassword ? "text" : "password"}
-              value={formData.newPassword}
-              onChange={handleChange("newPassword")}
-              onFocus={() => setFocusedField("newPassword")}
+              id="newPass"
+              type={formData.showNewPass ? "text" : "password"}
+              value={formData.newPass}
+              onChange={handleChange("newPass")}
+              onFocus={() => setFocusedField("newPass")}
               onBlur={() => setFocusedField(null)}
               endAdornment={
                 <InputAdornment position="end">
                   <Tooltip
                     title={`${
-                      formData.showNewPassword ? "Cacher" : "Voir"
+                      formData.showNewPass ? "Cacher" : "Voir"
                     } le mot de passe`}
                   >
                     <IconButton
                       aria-label="toggle password visibility"
-                      onClick={() => handleClickShowPassword("showNewPassword")}
+                      onClick={() => handleClickShowPass("showNewPass")}
                       edge="end"
                     >
-                      {formData.showNewPassword ? (
+                      {formData.showNewPass ? (
                         <Visibility />
                       ) : (
                         <VisibilityOff />
@@ -231,11 +212,11 @@ const UpdatePasswordPage = () => {
                 </InputAdornment>
               }
               label="Nouveau mot de passe"
-              disabled={!canEditNewPassword}
+              disabled={!canEditNewPass}
               inputProps={{ maxLength: 100 }}
               required
             />
-            {focusedField === "newPassword" && (
+            {focusedField === "newPass" && (
               <>
                 <Typography
                   variant="caption"
@@ -253,7 +234,7 @@ const UpdatePasswordPage = () => {
                   {" "}
                   <li
                     style={{
-                      color: newPasswordRequirements.differentToOldPassword
+                      color: newPassRequirements.differentToOldPass
                         ? "green"
                         : "red",
                     }}
@@ -262,34 +243,28 @@ const UpdatePasswordPage = () => {
                   </li>
                   <li
                     style={{
-                      color: newPasswordRequirements.minLength
-                        ? "green"
-                        : "red",
+                      color: newPassRequirements.minLength ? "green" : "red",
                     }}
                   >
                     Au moins 8 caractères
                   </li>
                   <li
                     style={{
-                      color: newPasswordRequirements.hasUppercase
-                        ? "green"
-                        : "red",
+                      color: newPassRequirements.hasUppercase ? "green" : "red",
                     }}
                   >
                     Au moins une majuscule
                   </li>
                   <li
                     style={{
-                      color: newPasswordRequirements.hasLowercase
-                        ? "green"
-                        : "red",
+                      color: newPassRequirements.hasLowercase ? "green" : "red",
                     }}
                   >
                     Au moins une minuscule
                   </li>
                   <li
                     style={{
-                      color: newPasswordRequirements.hasDigitOrSpecialChar
+                      color: newPassRequirements.hasDigitOrSpecialChar
                         ? "green"
                         : "red",
                     }}
@@ -302,21 +277,21 @@ const UpdatePasswordPage = () => {
           </FormControl>
 
           <FormControl variant="outlined" fullWidth>
-            <InputLabel htmlFor="confirmPassword">
+            <InputLabel htmlFor="confirmPass">
               Confirmez le mot de passe
             </InputLabel>
             <OutlinedInput
-              id="confirmPassword"
+              id="confirmPass"
               type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange("confirmPassword")}
-              onFocus={() => setFocusedField("confirmPassword")}
+              value={formData.confirmPass}
+              onChange={handleChange("confirmPass")}
+              onFocus={() => setFocusedField("confirmPass")}
               onBlur={() => setFocusedField(null)}
               label="Confirmez le mot de passe"
-              disabled={!canEditConfirmPassword}
+              disabled={!canEditConfirmPass}
               required
             />
-            {!canSubmit && focusedField === "confirmPassword" && (
+            {!canSubmit && focusedField === "confirmPass" && (
               <Typography variant="caption" sx={{ color: "red", mt: 1 }}>
                 Le mot de passe doit correspondre au nouveau mot de passe.
               </Typography>
@@ -327,25 +302,18 @@ const UpdatePasswordPage = () => {
             type="submit"
             variant="contained"
             size="large"
-            disabled={!canSubmit || isSubmitting}
+            disabled={!canSubmit || updatePassMutation.isPending}
             fullWidth
             sx={{ mt: 2, py: 1.5 }}
           >
-            {isSubmitting ? (
-              <CircularProgress size={24} color="inherit" />
+            {updatePassMutation.isPending ? (
+              <CircularProgress />
             ) : (
               "Mettre à jour"
             )}
           </Button>
         </Box>
       </Paper>
-      <InfoModal
-        open={infoModalProps.open}
-        onClose={() => setInfoModalProps({ ...infoModalProps, open: false })}
-        severity={infoModalProps.severity}
-        title={infoModalProps.title}
-        message={infoModalProps.message}
-      />
     </Container>
   );
 };

@@ -38,7 +38,7 @@ const userControllers = {
     ): Promise<void> => {
       const response = req.apiResponse!;
       const login = (req.body.login as string).trim().toUpperCase();
-      const pass = (req.body.login as string).trim();
+      const pass = (req.body.pass as string).trim();
 
       const user = await userServices.getUserByLoginServ(login);
       if (!user) {
@@ -89,7 +89,7 @@ const userControllers = {
         res.status(500).send(response); // Internal Server Error
         return;
       }
-      await userServices.recordUserLogoutServ(user_id);
+      await userServices.recordUserLatestActivTimeServ(user_id, false);
       response.message = "Vous avez été déconnecté(e) avec succès.";
       response.authStatus = "Logged out";
       res.status(200).send(response); // OK
@@ -165,7 +165,7 @@ const userControllers = {
   createUserControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -211,8 +211,9 @@ const userControllers = {
         ? "Utilisateur restauré avec succès"
         : "Cet utilisateur existe déjà";
 
-      res.status(!similUser || similUser.is_delete ? 200 : 409).send(response);
-      return;
+      response.data = !similUser || similUser.is_delete;
+
+      res.status(response.data ? 200 : 409).send(response);
       return;
     }
   ),
@@ -220,7 +221,7 @@ const userControllers = {
   updateUserControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -250,7 +251,37 @@ const userControllers = {
         ? "Cet utilisateur existe déjà"
         : "Utilisateur mis à jour avec succès";
 
+      response.data = !exist;
       res.status(exist ? 409 : 200).send(response); // OK
+      return;
+    }
+  ),
+
+  changeUserStatusControl: catchAsync(
+    async (
+      req: AuthRequest & {
+        apiResponse?: ApiResponse<boolean>;
+      },
+      res: Response
+    ): Promise<void> => {
+      const response = req.apiResponse!;
+      const { user_id, is_active } = req.body as {
+        user_id: number;
+        is_active: boolean;
+      };
+
+      await userServices.changeUserStatusServ(
+        user_id,
+        is_active,
+        req.session.user_id!
+      );
+
+      response.message = `Utilisateur ${
+        is_active ? "activé" : "désactivé"
+      } avec succès`;
+      response.data = true;
+
+      res.status(200).send(response); // OK
       return;
     }
   ),
@@ -258,7 +289,7 @@ const userControllers = {
   deleteUserControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -268,6 +299,7 @@ const userControllers = {
       await userServices.softDeleteUserServ(user_id, req.session.user_id!);
 
       response.message = "Utilisateur supprimé avec succès";
+      response.data = true;
 
       res.status(200).send(response); // OK
       return;
@@ -288,13 +320,23 @@ const userControllers = {
       res: Response
     ): Promise<void> => {
       const response = req.apiResponse!;
-      const filterData: {
-        dateDebut?: Date;
-        dateFin?: Date;
-        searchValue?: string | null;
-      } = req.body;
 
-      response.data = await userServices.searchUserLoggingsServ(filterData);
+      // In your controller, convert string dates back to Date objects
+      const { dateDebut, dateFin, searchValue } = req.body as {
+        dateDebut: string | null; // Changed from Date to string
+        dateFin: string | null; // Changed from Date to string
+        searchValue: string | null;
+      };
+
+      // Convert string dates back to Date objects
+      const dateDebutObj = dateDebut ? new Date(dateDebut) : null;
+      const dateFinObj = dateFin ? new Date(dateFin) : null;
+
+      response.data = await userServices.searchUserLoggingsServ({
+        dateDebut: dateDebutObj,
+        dateFin: dateFinObj,
+        searchValue: searchValue?.trim() || null,
+      });
 
       res.status(200).send(response); // OK
       return;

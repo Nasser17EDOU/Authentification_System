@@ -33,7 +33,7 @@ const passwordControllers = {
   updatePassParamControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -51,6 +51,7 @@ const passwordControllers = {
       );
 
       response.message = "Configuration mise à jour avec succès.";
+      response.data = true;
 
       res.status(200).send(response); // OK
       return;
@@ -60,7 +61,7 @@ const passwordControllers = {
   initUserPassControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
@@ -77,6 +78,7 @@ const passwordControllers = {
       );
 
       response.message = "Mot de passe réinitialisé avec succès.";
+      response.data = true;
 
       res.status(200).send(response); // OK
       return;
@@ -86,31 +88,26 @@ const passwordControllers = {
   updateUserPassControl: catchAsync(
     async (
       req: AuthRequest & {
-        apiResponse?: ApiResponse<null>;
+        apiResponse?: ApiResponse<boolean>;
       },
       res: Response
     ): Promise<void> => {
       const response = req.apiResponse!;
 
-      const user_id = req.body.user_id as number;
       const oldPass = (req.body.oldPass as string).trim();
       let pass = (req.body.pass as string).trim();
       const isUpdate = req.body.pass as boolean;
       // const pass = await bcrypt.hash(req.body.pass as string, 10);
-
-      if (user_id !== req.session.user_id!) {
-        response.message = "Vous ne pouvez pas éffectuer cette opération";
-        res.status(401).send(response);
-        return;
-      }
+      const user_id = req.session.user_id!;
 
       if (
-        await bcrypt.compare(
+        !(await bcrypt.compare(
           oldPass,
           (await passwordServices.getCurrentUserPasswordServ(user_id))!.pass
-        )
+        ))
       ) {
         response.message = "Mot de passe incorrect";
+        response.data = false;
         res.status(401).send(response);
         return;
       }
@@ -123,6 +120,7 @@ const passwordControllers = {
         (await passwordServices.passwordInHistoryServ(user_id, pass))
       ) {
         response.message = "Mot de passe déjà utilisé";
+        response.data = false;
         res.status(401).send(response);
         return;
       }
@@ -141,6 +139,8 @@ const passwordControllers = {
       }
 
       response.message = "Mot de passe mis à jour avec succès.";
+      response.data = true;
+      response.authStatus = "Logged in";
 
       res.status(200).send(response); // OK
       return;

@@ -46,8 +46,9 @@ CREATE TABLE
     IF NOT EXISTS loggings (
         logging_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
+        is_curr BOOLEAN NOT NULL DEFAULT TRUE,
         debut_logging DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        fin_logging DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        last_activ_time DATETIME DEFAULT NULL,
         CONSTRAINT fk_loggings_user_id FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
     ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 

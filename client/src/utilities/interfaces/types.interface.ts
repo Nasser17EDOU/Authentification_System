@@ -20,24 +20,4 @@ export type Permission =
   | "Créer les profils"
   | "Modifier les profils"
   | "Supprimer les profils"
-  | "Modifier les permissions des profils"
-
-  // permissions Departement
-  | "Consulter les directions & départements"
-  | "Créer les directions & départements"
-  | "Modifier les directions & départements"
-  | "Supprimer les directions & départements"
-
-  // permissions employes
-  | "Consulter les employés"
-  | "Créer les employés"
-  | "Modifier les employés"
-  | "Supprimer les employés"
-
-  // permissions missions
-  | "Consulter les missions"
-  | "Créer les missions"
-  | "Modifier les missions"
-  | "Supprimer les missions"
-  | "Approuver les missions"
-  | "Verrouiller & déverrouiller les missions";
+  | "Modifier les permissions des profils";

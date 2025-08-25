@@ -84,6 +84,34 @@ export const userServices = {
     });
   },
 
+  // de/activate user
+  changeUserStatusServ: async (
+    user_id: number,
+    is_active: boolean,
+    modifieur_id: number
+  ): Promise<boolean> => {
+    return withTransaction(async (conn: PoolConnection) => {
+      const [result] = await conn.query<ResultSetHeader>(
+        `UPDATE users SET ?
+         WHERE user_id = ?`,
+        [
+          {
+            is_active,
+            modifieur_id,
+          },
+          user_id,
+        ]
+      );
+      const success = result.affectedRows > 0;
+      logger.info(
+        `Attemp to ${
+          is_active ? "activate" : "desactivate"
+        } user (${user_id}) ${success ? "" : "not"} succeed`
+      );
+      return success;
+    });
+  },
+
   // Soft delete user
   softDeleteUserServ: async (
     user_id: number,
@@ -187,6 +215,13 @@ export const userServices = {
   // Record a user logging time
   recordUserLoggingServ: async (user_id: number): Promise<number> => {
     return withTransaction(async (conn: PoolConnection) => {
+      // Set all existing sessions for this user to inactive (without updating last_activ_time)
+      await conn.query(
+        `UPDATE loggings SET is_curr = FALSE 
+        WHERE user_id = ? AND is_curr = TRUE`,
+        [user_id]
+      );
+
       const [result] = await conn.query<ResultSetHeader>(
         `INSERT INTO loggings SET ?`,
         [{ user_id }]
@@ -196,28 +231,35 @@ export const userServices = {
     });
   },
 
-  // Record a user logout time
-  recordUserLogoutServ: async (user_id: number): Promise<boolean> => {
+  // Record a user latest activity time
+  recordUserLatestActivTimeServ: async (
+    user_id: number,
+    is_curr = true // false in case of logout
+  ): Promise<boolean> => {
     return withTransaction(async (conn: PoolConnection) => {
       const [result] = await conn.query<ResultSetHeader>(
-        `UPDATE loggings SET ? 
-         WHERE user_id = ? 
-         AND fin_logging IS NULL`,
-        [{ fin_logging: null }, user_id]
+        `UPDATE loggings 
+        SET last_activ_time = CURRENT_TIMESTAMP ${
+          is_curr ? "" : ", is_curr = FALSE"
+        } 
+        WHERE user_id = ? AND is_curr = TRUE`,
+        [user_id]
       );
       const success = result.affectedRows > 0;
       logger.info(
-        `Attemp to loggout user (${user_id}) ${success ? "" : "not"} succeed`
+        `User (${user_id}) activity time ${
+          success ? "updated" : "not updated - no active session"
+        }`
       );
       return success;
     });
   },
 
   // fetch user loggings (excluding super admin)
-  searchUserLoggingsServ: async (params: {
-    dateDebut?: Date;
-    dateFin?: Date;
-    searchValue?: string | null;
+  searchUserLoggingsServ: async (data: {
+    dateDebut: Date | null;
+    dateFin: Date | null;
+    searchValue: string | null;
   }): Promise<
     (Logging & {
       login: User["login"];
@@ -231,7 +273,7 @@ export const userServices = {
         l.logging_id, 
         l.user_id, 
         l.debut_logging, 
-        l.fin_logging,
+        l.last_activ_time,
         u.login,
         u.nom,
         u.prenom
@@ -244,39 +286,39 @@ export const userServices = {
       const queryParams: any[] = [process.env.SUPER_ADMIN_LOGIN!];
 
       // Date range filtering
-      if (params.dateDebut || params.dateFin) {
-        if (params.dateDebut && params.dateFin) {
+      if (data.dateDebut || data.dateFin) {
+        if (data.dateDebut && data.dateFin) {
           query += ` AND (
             (l.debut_logging BETWEEN ? AND ?) OR
-            (l.fin_logging BETWEEN ? AND ?) OR
-            (l.debut_logging <= ? AND l.fin_logging >= ?)
+            (l.last_activ_time BETWEEN ? AND ?) OR
+            (l.debut_logging <= ? AND l.last_activ_time >= ?)
           )`;
           queryParams.push(
-            params.dateDebut,
-            params.dateFin, // debut between
-            params.dateDebut,
-            params.dateFin, // fin between
-            params.dateDebut,
-            params.dateFin // spans range
+            data.dateDebut,
+            data.dateFin, // debut between
+            data.dateDebut,
+            data.dateFin, // fin between
+            data.dateDebut,
+            data.dateFin // spans range
           );
-        } else if (params.dateDebut) {
-          query += ` AND (l.fin_logging >= ? OR l.debut_logging >= ?)`;
-          queryParams.push(params.dateDebut, params.dateDebut);
-        } else if (params.dateFin) {
-          query += ` AND (l.debut_logging <= ? OR l.fin_logging <= ?)`;
-          queryParams.push(params.dateFin, params.dateFin);
+        } else if (data.dateDebut) {
+          query += ` AND (l.last_activ_time >= ? OR l.debut_logging >= ?)`;
+          queryParams.push(data.dateDebut, data.dateDebut);
+        } else if (data.dateFin) {
+          query += ` AND (l.debut_logging <= ? OR l.last_activ_time <= ?)`;
+          queryParams.push(data.dateFin, data.dateFin);
         }
       }
 
       // Search filtering
-      if (params.searchValue) {
+      if (data.searchValue) {
         query += ` AND (
         u.login LIKE ? OR 
         CONCAT(u.nom, ' ', IFNULL(u.prenom, '')) LIKE ? OR
         u.nom LIKE ? OR 
         u.prenom LIKE ?
       )`;
-        const searchPattern = `%${params.searchValue}%`;
+        const searchPattern = `%${data.searchValue}%`;
         queryParams.push(
           searchPattern,
           searchPattern,

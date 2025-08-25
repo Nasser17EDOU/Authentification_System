@@ -91,6 +91,27 @@ const profileServices = {
     });
   },
 
+  // Restaure soft deleted profile
+  restaureDelProfileServ: async (
+    profil_id: number,
+    modifieur_id: number
+  ): Promise<boolean> => {
+    return withTransaction(async (conn: PoolConnection) => {
+      const [result] = await conn.query<ResultSetHeader>(
+        `UPDATE profils SET ? WHERE profil_id = ?`,
+        [{ is_delete: false, modifieur_id }, profil_id]
+      );
+      const success = result.affectedRows > 0;
+      logger.info(
+        `Attemp to restaure profile (${profil_id}) ${
+          success ? "" : "not"
+        } succeed`,
+        { modifieur_id }
+      );
+      return success;
+    });
+  },
+
   // Soft delete profile
   softDeleteProfileServ: async (
     profil_id: number,

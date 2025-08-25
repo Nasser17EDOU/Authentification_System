@@ -11,14 +11,11 @@ client/dist/
 server/build/
 server/dist/
 
-# Ignore .env files
-.env
-client/.env
-server/.env
+# Ignore .env files // uncomment the following lines in prod
+#.env
+# client/.env
+# server/.env
 
 # Logs and misc
 *.log
 .DS_Store
-
-# the database value file
-AM_Oprag.sql

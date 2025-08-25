@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_APPWELCOME_TITLE: string;
   readonly VITE_APPWELCOMEPARAGRAPHE_TITLE: string;
   readonly VITE_APP_PORT: string;
+  readonly VITE_SESSION_KEY: string;
+  readonly VITE_API_BASE_URL: string;
   // add more environment variables here...
 }
 

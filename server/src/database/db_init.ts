@@ -40,7 +40,7 @@ const pool: mysql.Pool = mysql.createPool({
 
   // -- Timezone & Date Handling --
   timezone: "Z", // Force UTC (good practice!)
-  dateStrings: false, // Return dates as strings (not JavaScript Dates)
+  dateStrings: false, //  Return dates as JavaScript Date objects
   connectAttributes: {
     session_time_zone: "+00:00", // Align with `timezone: "Z"`
     program_name: process.env.APP_NAME,
@@ -54,11 +54,10 @@ const pool: mysql.Pool = mysql.createPool({
     switch (field.type) {
       case "DATETIME":
       case "TIMESTAMP":
-        // Convert to JS Date, preserving UTC
-        return field.string() ? new Date(field.string() + "Z") : null;
       case "DATE":
-        // Return as ISO date string (YYYY-MM-DD)
-        return field.string();
+        const val = field.string();
+        // Convert to JS Date, preserving UTC
+        return val ? new Date(val.replace(" ", "T")) : null;
       case "TINY":
         if (field.length === 1) return field.string() === "1"; // TINYINT(1) → boolean
         return next();
